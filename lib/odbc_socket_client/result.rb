@@ -1,5 +1,6 @@
 require 'rexml/document'
 require 'active_support/ordered_hash'
+require 'iconv'
 
 module OdbcSocketClient
   class Result
@@ -9,12 +10,15 @@ module OdbcSocketClient
       @status = 'unknown'
       @rows = []
       
-      puts xml_result
-      parse xml_result
+      parse iconv(xml_result)
     end
     
     
     protected
+    def iconv xml_result
+      Iconv.conv 'UTF-8', 'LATIN-9', xml_result
+    end
+    
     def parse xml_result
       doc = REXML::Document.new xml_result
       

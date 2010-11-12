@@ -17,10 +17,14 @@ module OdbcSocketClient
         end
       end
       
-      x.target!
+      iconv x.target!
     end
     
     protected
+    def iconv xml_request
+      Iconv.conv 'LATIN-9', 'UTF-8', xml_request
+    end
+    
     def get_builder
       x = Builder::XmlMarkup.new
       x.instruct! "xml", :version => '1.0'
