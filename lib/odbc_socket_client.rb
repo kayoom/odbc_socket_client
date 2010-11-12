@@ -1,0 +1,1 @@
+require 'odbc_socket_client/railtie' if defined?(Rails)
