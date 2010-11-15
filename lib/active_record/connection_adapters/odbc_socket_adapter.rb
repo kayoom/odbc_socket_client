@@ -93,6 +93,15 @@ module ActiveRecord
       def table_exists? table_name
         tables.include? table_name.to_s
       end
+      
+      
+      def quoted_true
+        "True"
+      end
+
+      def quoted_false
+        "False"
+      end
     
       def adapter_name
         ADAPTER_NAME

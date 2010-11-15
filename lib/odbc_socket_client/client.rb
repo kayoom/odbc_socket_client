@@ -27,7 +27,6 @@ module OdbcSocketClient
     end
     
     def execute_query query
-      puts "Executing: " + query
       execute build_request(query)
     end
     
