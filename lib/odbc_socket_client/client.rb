@@ -9,12 +9,13 @@ module OdbcSocketClient
   class Client
     
     
-    def initialize config
+    def initialize config, logger
       config = config.symbolize_keys
       
       @connection_string = ConnectionString.build config
       @host = config[:host]
       @port = config[:port].to_i || 9628
+      @logger = logger
     end
     
     def build_request query
@@ -30,7 +31,6 @@ module OdbcSocketClient
     end
     
     def execute request
-      puts request.to_xml
       connection.socket do |s|
         s.print request.to_xml
         
