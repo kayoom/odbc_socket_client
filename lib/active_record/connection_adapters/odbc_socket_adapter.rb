@@ -41,9 +41,9 @@ module ActiveRecord
         
         record.each do |column_name, value|
           if column = column_mapping[column_name.to_sym]
-            attributes[column.name] = value
+            attributes[column.name.to_s] = value
           else
-            attributes[column_name] = value
+            attributes[column_name.to_s] = value
           end
         end
         
@@ -76,6 +76,10 @@ module ActiveRecord
       def adapter_name
         ADAPTER_NAME
       end    
+      
+      def select sql, name = nil
+        @client.execute_query(sql).rows
+      end
       
       protected
       def load_tables        
