@@ -9,10 +9,13 @@ module ActiveRecord
       
       %w(string integer float decimal datetime date timestamp time binary boolean text).each do |type|
         define_method type do |column_name, attribute_name|
-          @mapping[column_name.to_sym] = ConnectionAdapters::Column.new attribute_name, nil, type
+          @mapping[column_name.to_sym] = ConnectionAdapters::MappedColumn.new(attribute_name, nil, type).tap do |c|
+            c.sql_column_name = column_name.to_s
+          end
         end
       end
     end
+    
     
     class_attribute :column_mapping
     
@@ -25,13 +28,16 @@ module ActiveRecord
         self.column_mapping = {}
         block.call ColumnMapper.new(self.column_mapping)
         
+        @columns = column_mapping.values
         class_eval <<-RUBY
           def self.instantiate record
             super remap(record)
           end
           
-          def self.columns
-            column_mapping.values
+          def self.arel_table
+            @arel_table ||= Arel::Table.new(table_name, arel_engine).tap do |t|
+              t.instance_variable_set :@columns, column_mapping.values
+            end
           end
         RUBY
       end
@@ -55,6 +61,10 @@ end
 
 module ActiveRecord
   module ConnectionAdapters
+    class MappedColumn < Column
+      attr_accessor :sql_column_name
+    end
+    
     class OdbcSocketAdapter < AbstractAdapter
       ADAPTER_NAME = 'OdbcSocket'.freeze
       TABLES_QUERY = "SELECT * FROM MSysObjects WHERE (MSysObjects.Type = 1 AND left(MSysObjects.Name, 4) <> 'MSys');".freeze
