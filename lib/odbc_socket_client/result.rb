@@ -31,6 +31,8 @@ module OdbcSocketClient
         parse_rows root_element
       when 'failure'
         parse_error root_element
+        
+        raise @error
       end
     end
     
@@ -41,7 +43,11 @@ module OdbcSocketClient
     def parse_rows element
       @rows = []
       
-      @columns = parse_columns element[1]
+      if first_row = element[1]
+        @columns = parse_columns first_row
+      else
+        return
+      end
       
       element.each_element 'row' do |row|
         parse_row row

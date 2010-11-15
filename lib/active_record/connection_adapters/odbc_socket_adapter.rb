@@ -9,7 +9,7 @@ module ActiveRecord
       
       %w(string integer float decimal datetime date timestamp time binary boolean text).each do |type|
         define_method type do |column_name, attribute_name|
-          @mapping[column_name.to_sym] = ConnectionAdapters::MappedColumn.new(attribute_name, nil, type).tap do |c|
+          @mapping[column_name.to_s] = ConnectionAdapters::MappedColumn.new(attribute_name.to_s, nil, type).tap do |c|
             c.sql_column_name = column_name.to_s
           end
         end
@@ -28,16 +28,13 @@ module ActiveRecord
         self.column_mapping = {}
         block.call ColumnMapper.new(self.column_mapping)
         
-        @columns = column_mapping.values
+        connection.table_columns[table_name.to_s] = column_mapping.values
+        
+        default_scope select(*column_mapping.keys)
+        
         class_eval <<-RUBY
           def self.instantiate record
             super remap(record)
-          end
-          
-          def self.arel_table
-            @arel_table ||= Arel::Table.new(table_name, arel_engine).tap do |t|
-              t.instance_variable_set :@columns, column_mapping.values
-            end
           end
         RUBY
       end
@@ -46,7 +43,7 @@ module ActiveRecord
         attributes = {}
         
         record.each do |column_name, value|
-          if column = column_mapping[column_name.to_sym]
+          if column = column_mapping[column_name.to_s]
             attributes[column.name.to_s] = value
           else
             attributes[column_name.to_s] = value
@@ -62,10 +59,22 @@ end
 module ActiveRecord
   module ConnectionAdapters
     class MappedColumn < Column
+      module Format
+        MS_ACCESS_DATETIME = /\A(\d{4})-(\d\d)-(\d\d) (\d\d?):(\d\d?):(\d\d?)(\.\d+)?\z/
+      end
+      
       attr_accessor :sql_column_name
+      
+      def self.fast_string_to_time string
+        if string =~ Format::MS_ACCESS_DATETIME
+          microsec = ($7.to_f * 1_000_000).to_i
+          new_time $1.to_i, $2.to_i, $3.to_i, $4.to_i, $5.to_i, $6.to_i, microsec
+        end
+      end
     end
     
     class OdbcSocketAdapter < AbstractAdapter
+      attr_accessor :table_columns
       ADAPTER_NAME = 'OdbcSocket'.freeze
       TABLES_QUERY = "SELECT * FROM MSysObjects WHERE (MSysObjects.Type = 1 AND left(MSysObjects.Name, 4) <> 'MSys');".freeze
       TABLE_NAME_COLUMN = :Name
@@ -73,6 +82,8 @@ module ActiveRecord
       def initialize config, logger = nil
         @client = OdbcSocketClient::Client.new config, logger
         super @client, logger
+        
+        @table_columns = {}
       end
       
       def tables
@@ -86,6 +97,10 @@ module ActiveRecord
       def adapter_name
         ADAPTER_NAME
       end    
+      
+      def columns table_name, whatever = nil
+        @table_columns[table_name.to_s]
+      end
       
       def select sql, name = nil
         @client.execute_query(sql).rows
