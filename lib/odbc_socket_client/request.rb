@@ -2,6 +2,8 @@ require 'builder' unless defined? ::Builder
 
 module OdbcSocketClient
   class Request
+    attr_accessor :query, :connection_string
+    
     def initialize query, connection_string
       @query = query
       @connection_string = connection_string

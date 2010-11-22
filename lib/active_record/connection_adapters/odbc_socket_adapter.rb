@@ -1,6 +1,50 @@
 require 'active_record/connection_adapters/abstract_adapter'
 
 module ActiveRecord
+  module ColumnMapping
+    def instantiate record
+      super remap(record)
+    end
+    
+    def remap_sql sql        
+      # Hack to support Jet SQL's idiotic TOP 10 syntax
+      if limit = sql.match(/LIMIT (\d+)/)
+        limit_clause, limit = limit.to_a[0,2]
+    
+        sql.sub! limit_clause, ''
+        sql.sub! 'SELECT', "SELECT TOP #{limit}"
+      end
+  
+      # Column mapping hack, i should've based this on DataMapper...
+      sql.gsub! /#{table_name}\.([a-zA-Z0-9_]+)/ do |match|
+        column_name = $1
+        column = columns.find {|c| c.name.to_s == column_name}
+    
+        "#{table_name}.#{column.sql_column_name.to_s}"
+      end
+  
+      sql
+    end
+    
+    def find_by_sql sql
+      super remap_sql(sql)
+    end
+    
+    def remap record
+      attributes = {}
+      
+      record.each do |column_name, value|
+        if column = column_mapping[column_name.to_s]
+          attributes[column.name.to_s] = value
+        else
+          attributes[column_name.to_s] = value
+        end
+      end
+      
+      attributes
+    end
+  end
+  
   class Base
     class ColumnMapper
       def initialize mapping
@@ -30,28 +74,11 @@ module ActiveRecord
         
         connection.table_columns[table_name.to_s] = column_mapping.values
         
-        default_scope select(*column_mapping.keys)
+        default_scope select(column_mapping.keys)
         
-        class_eval <<-RUBY
-          def self.instantiate record
-            super remap(record)
-          end
-        RUBY
+        extend ColumnMapping
       end
       
-      def remap record
-        attributes = {}
-        
-        record.each do |column_name, value|
-          if column = column_mapping[column_name.to_s]
-            attributes[column.name.to_s] = value
-          else
-            attributes[column_name.to_s] = value
-          end
-        end
-        
-        attributes
-      end
     end
   end
 end

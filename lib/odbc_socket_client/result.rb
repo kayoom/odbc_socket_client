@@ -13,6 +13,13 @@ module OdbcSocketClient
       parse iconv(xml_result)
     end
     
+    def success?
+      status.to_s == 'success'
+    end
+    
+    def error?
+      status.to_s == 'error'
+    end    
     
     protected
     def iconv xml_result
@@ -31,8 +38,6 @@ module OdbcSocketClient
         parse_rows root_element
       when 'failure'
         parse_error root_element
-        
-        raise @error
       end
     end
     
