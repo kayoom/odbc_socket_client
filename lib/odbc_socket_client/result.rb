@@ -1,4 +1,4 @@
-require 'rexml/document'
+require 'nokogiri'
 require 'active_support/ordered_hash'
 require 'iconv'
 
@@ -18,7 +18,7 @@ module OdbcSocketClient
     end
     
     def error?
-      status.to_s == 'error'
+      status.to_s == 'failure'
     end    
     
     protected
@@ -27,11 +27,11 @@ module OdbcSocketClient
     end
     
     def parse xml_result
-      doc = REXML::Document.new xml_result
+      doc = Nokogiri::XML.parse xml_result
       
-      root_element = doc.root
+      root_element = doc.xpath('/result').first
       
-      @status = root_element.attribute('state').value
+      @status = root_element.attr('state').to_s
       
       case @status
       when 'success'
@@ -42,19 +42,21 @@ module OdbcSocketClient
     end
     
     def parse_error element
-      @error = element[1].text
+      @error = element.xpath('./error').first.try :text
     end
     
     def parse_rows element
       @rows = []
       
-      if first_row = element[1]
+      row_nodes = element.element_children
+      
+      if first_row = row_nodes.first
         @columns = parse_columns first_row
       else
         return
       end
       
-      element.each_element 'row' do |row|
+      row_nodes.each do |row|
         parse_row row
       end
     end
@@ -64,16 +66,21 @@ module OdbcSocketClient
       column_number = 0
       
       @rows << current_row
-      row.each_element 'column' do |column|
+      
+      column_nodes = row.element_children
+      
+      column_nodes.each do |column|
         current_row[@columns[column_number]] = column.text
         column_number += 1
       end
     end
     
     def parse_columns row
+      column_nodes = row.element_children
+      
       [].tap do |columns|
-        row.each_element 'column' do |column|
-          name = column.attribute('name').value
+        column_nodes.each do |column|
+          name = column.attr 'name'
           
           columns << name.to_sym
         end        

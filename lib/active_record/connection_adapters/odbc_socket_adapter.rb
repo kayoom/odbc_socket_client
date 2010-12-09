@@ -30,6 +30,10 @@ module ActiveRecord
       super remap_sql(sql)
     end
     
+    def count_by_sql sql
+      super remap_sql(sql)
+    end
+    
     def remap record
       attributes = {}
       
@@ -67,7 +71,13 @@ module ActiveRecord
       def odbc_socket_connection config
         ConnectionAdapters::OdbcSocketAdapter.new config, logger
       end
-    
+      
+      def map_primary_key name
+        connection.set_primary_key self, name
+        
+        set_primary_key name
+      end
+      
       def map_columns &block
         self.column_mapping = {}
         block.call ColumnMapper.new(self.column_mapping)
@@ -101,7 +111,7 @@ module ActiveRecord
     end
     
     class OdbcSocketAdapter < AbstractAdapter
-      attr_accessor :table_columns
+      attr_accessor :table_columns, :primary_keys
       ADAPTER_NAME = 'OdbcSocket'.freeze
       TABLES_QUERY = "SELECT * FROM MSysObjects WHERE (MSysObjects.Type = 1 AND left(MSysObjects.Name, 4) <> 'MSys');".freeze
       TABLE_NAME_COLUMN = :Name
@@ -111,6 +121,7 @@ module ActiveRecord
         super @client, logger
         
         @table_columns = {}
+        @primary_keys = {}
       end
       
       def tables
@@ -121,6 +132,15 @@ module ActiveRecord
         tables.include? table_name.to_s
       end
       
+      def set_primary_key table, key
+        @primary_keys ||= {}
+        
+        @primary_keys[table.table_name.to_s] = key.to_s
+      end
+      
+      def primary_key table_name
+        @primary_keys[table_name.to_s]
+      end
       
       def quoted_true
         "True"
@@ -139,7 +159,11 @@ module ActiveRecord
       end
       
       def select sql, name = nil
-        @client.execute_query(sql).rows
+        result = @client.execute_query(sql)
+        
+        raise result.error if result.error?
+        
+        result.rows
       end
       
       protected

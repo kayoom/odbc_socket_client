@@ -1,4 +1,5 @@
-require 'builder' unless defined? ::Builder
+# require 'builder' unless defined? ::Builder
+require 'nokogiri'
 
 module OdbcSocketClient
   class Request
@@ -10,28 +11,22 @@ module OdbcSocketClient
     end
     
     def to_xml
-      x = get_builder
+      x = Nokogiri::XML::Builder.new
       
-      x.request do
+      x.request do |x|
         x.connectionstring @connection_string
-        x.sql do
-          x.cdata! @query
+        x.sql do |x|
+          x.cdata @query
         end
       end
       
-      iconv x.target!
+      puts @query
+      iconv x.to_xml
     end
     
     protected
     def iconv xml_request
       Iconv.conv 'LATIN-9', 'UTF-8', xml_request
-    end
-    
-    def get_builder
-      x = Builder::XmlMarkup.new
-      x.instruct! "xml", :version => '1.0'
-      
-      x
     end
   end
 end

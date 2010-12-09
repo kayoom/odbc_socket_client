@@ -16,4 +16,6 @@ Gem::Specification.new do |s|
                     Dir["rcov/**/*"]
                     
   s.require_path = 'lib'
+  
+  s.add_dependency 'nokogiri'
 end
