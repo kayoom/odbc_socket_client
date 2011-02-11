@@ -19,7 +19,7 @@ module ActiveRecord
       sql.gsub! /#{table_name}\.([a-zA-Z0-9_]+)/ do |match|
         column_name = $1
         column = columns.find {|c| c.name.to_s == column_name}
-    
+
         if column
           "#{table_name}.#{column.sql_column_name.to_s}"
         else
@@ -161,6 +161,40 @@ module ActiveRecord
       def adapter_name
         ADAPTER_NAME
       end    
+      
+      def quote(value, column = nil)
+        # records are quoted as their primary key
+        return value.quoted_id if value.respond_to?(:quoted_id)
+
+        case value
+          when String, ActiveSupport::Multibyte::Chars
+            value = value.to_s
+            if column && column.type == :binary && column.class.respond_to?(:string_to_binary)
+              "'#{quote_string(column.class.string_to_binary(value))}'" # ' (for ruby-mode)
+            elsif column && [:integer, :float].include?(column.type)
+              value = column.type == :integer ? value.to_i : value.to_f
+              value.to_s
+            else
+              "'#{quote_string(value)}'" # ' (for ruby-mode)
+            end
+          when NilClass                 then "NULL"
+          when TrueClass                then (column && column.type == :integer ? '1' : quoted_true)
+          when FalseClass               then (column && column.type == :integer ? '0' : quoted_false)
+          when Float, Fixnum, Bignum    then value.to_s
+          # BigDecimals need to be output in a non-normalized form and quoted.
+          when BigDecimal               then value.to_s('F')
+          else
+            if value.acts_like?(:date) || value.acts_like?(:time)
+              "#{quoted_date(value)}"
+            else
+              "'#{quote_string(value.to_s)}'"
+            end
+        end
+      end
+      
+      def quoted_date value
+        "##{value.strftime("%Y-%m-%d")}#"
+      end
       
       def columns table_name, whatever = nil
         @table_columns[table_name.to_s]
