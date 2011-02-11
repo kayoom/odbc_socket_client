@@ -28,7 +28,7 @@ module OdbcSocketClient
     
     def parse xml_result
       doc = Nokogiri::XML.parse xml_result
-      
+
       root_element = doc.xpath('/result').first
       
       @status = root_element.attr('state').to_s

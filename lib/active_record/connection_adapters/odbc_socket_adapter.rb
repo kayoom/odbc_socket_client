@@ -20,7 +20,11 @@ module ActiveRecord
         column_name = $1
         column = columns.find {|c| c.name.to_s == column_name}
     
-        "#{table_name}.#{column.sql_column_name.to_s}"
+        if column
+          "#{table_name}.#{column.sql_column_name.to_s}"
+        else
+          "#{table_name}.#{column_name}"
+        end
       end
   
       sql
@@ -78,13 +82,17 @@ module ActiveRecord
         set_primary_key name
       end
       
-      def map_columns &block
+      def map_columns options = {}, &block
+        options = {
+          :default_scope => true
+        }.merge(options)
+        
         self.column_mapping = {}
         block.call ColumnMapper.new(self.column_mapping)
         
         connection.table_columns[table_name.to_s] = column_mapping.values
         
-        default_scope select(column_mapping.keys)
+        default_scope select(column_mapping.keys) if options[:default_scope]
         
         extend ColumnMapping
       end
