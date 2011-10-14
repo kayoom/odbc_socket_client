@@ -30,8 +30,8 @@ module ActiveRecord
       sql
     end
     
-    def find_by_sql sql
-      super remap_sql(sql)
+    def find_by_sql sql, *args
+      super remap_sql(sql), *args
     end
     
     def count_by_sql sql
