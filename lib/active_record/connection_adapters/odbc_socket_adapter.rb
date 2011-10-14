@@ -6,7 +6,7 @@ module ActiveRecord
       super remap(record)
     end
     
-    def remap_sql sql        
+    def remap_sql sql
       # Hack to support Jet SQL's idiotic TOP 10 syntax
       if limit = sql.match(/LIMIT (\d+)/)
         limit_clause, limit = limit.to_a[0,2]
@@ -31,7 +31,7 @@ module ActiveRecord
     end
     
     def find_by_sql sql, *args
-      super remap_sql(sql), *args
+      super remap_sql(sql.to_sql), *args
     end
     
     def count_by_sql sql
@@ -200,7 +200,7 @@ module ActiveRecord
         @table_columns[table_name.to_s]
       end
       
-      def select sql, name = nil
+      def select sql, name = nil, binds = []
         result = @client.execute_query(sql)
         
         raise result.error if result.error?
