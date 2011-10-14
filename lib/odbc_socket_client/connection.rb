@@ -20,7 +20,7 @@ module OdbcSocketClient
       
       block.call socket
     ensure
-      socket.close
+      socket && socket.close
     end
     
     protected
