@@ -7,7 +7,7 @@ module OdbcSocketClient
 
     DEFAULT_PORT = 9628
     OPEN_TIMEOUT = 30
-    QUERY_TIMEOUT = 300
+    QUERY_TIMEOUT = 3000
     class SocketOpenTimeoutError < Timeout::Error ; end
     class QueryTimeoutError < Timeout::Error ; end
 
