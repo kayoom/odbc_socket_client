@@ -18,4 +18,5 @@ Gem::Specification.new do |s|
   s.require_path = 'lib'
   
   s.add_dependency 'nokogiri'
+  s.add_dependency 'SystemTimer'
 end
