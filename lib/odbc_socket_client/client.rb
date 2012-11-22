@@ -1,5 +1,3 @@
-
-
 require 'odbc_socket_client/request'
 require 'odbc_socket_client/result'
 require 'odbc_socket_client/connection'
@@ -7,7 +5,6 @@ require 'odbc_socket_client/connection_string'
 
 module OdbcSocketClient
   class Client
-
 
     def initialize config, logger
       config = config.symbolize_keys

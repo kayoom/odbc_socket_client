@@ -1,9 +1,8 @@
 require 'socket'
-require 'system_timer'
+require 'timeout'
 
 module OdbcSocketClient
   class Connection
-    include Timeout
 
     DEFAULT_PORT = 9628
     OPEN_TIMEOUT = 30
@@ -25,13 +24,13 @@ module OdbcSocketClient
 
     protected
     def open_socket
-      SystemTimer.timeout_after(OPEN_TIMEOUT, SocketOpenTimeoutError) do
+      Timeout.timeout OPEN_TIMEOUT, SocketOpenTimeoutError do
         TCPSocket.open @host, @port
       end
     end
 
     def query socket, &block
-      SystemTimer.timeout_after(QUERY_TIMEOUT, QueryTimeoutError) do
+      Timeout.timeout QUERY_TIMEOUT, QueryTimeoutError do
         block[socket]
       end
     end
