@@ -5,7 +5,6 @@ Gem::Specification.new do |s|
   s.authors = ['Marian Theisen']
   s.email = 'marian@cice-online.net'
   s.summary = 'Rudimentary ActiveRecord ODBCSocketServer Adapter'
-  s.homepage = 'www.cice-online.net'
   s.description = 'Rudimentary ActiveRecord ODBCSocketServer Adapter'
 
   s.files        =  Dir["**/*"] - 
