@@ -1,4 +1,5 @@
 require 'active_record/connection_adapters/abstract_adapter'
+require 'arel/visitors/jet'
 
 module ActiveRecord
   module ColumnMapping
@@ -7,14 +8,6 @@ module ActiveRecord
     end
 
     def remap_sql sql
-      # Hack to support Jet SQL's idiotic TOP 10 syntax
-      if limit = sql.match(/LIMIT (\d+)/)
-        limit_clause, limit = limit.to_a[0,2]
-
-        sql.sub! limit_clause, ''
-        sql.sub! 'SELECT', "SELECT TOP #{limit}"
-      end
-
       # Column mapping hack, i should've based this on DataMapper...
       sql.gsub! /#{table_name}\.([a-zA-Z0-9_]+)/ do |match|
         column_name = $1
@@ -131,6 +124,7 @@ module ActiveRecord
 
         @table_columns = {}
         @primary_keys = {}
+        @visitor = Arel::Visitors::Jet.new self
       end
 
       def tables
